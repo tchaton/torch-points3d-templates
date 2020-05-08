@@ -1,5 +1,10 @@
-from utils import load_torch_points3d
-load_torch_points3d()
+try:
+    # Used for dev
+    from utils import load_torch_points3d
+    load_torch_points3d()
+except:
+    pass
+
 import os
 import torch
 from torch import nn
