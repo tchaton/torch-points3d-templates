@@ -100,8 +100,8 @@ if __name__ == '__main__':
         num_layers: 3
         multiscale: True
     training:
-        batch_size: 8
-        num_workers: 4
+        batch_size: 4
+        num_workers: 1
     """
 
     params = OmegaConf.create(params)
