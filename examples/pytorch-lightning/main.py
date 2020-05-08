@@ -6,6 +6,7 @@ import torch
 from torch import nn
 from omegaconf import OmegaConf
 from torch.nn import functional as F
+from torch_points3d.core.data_transform import AddOnes
 from torch_points3d.applications.pointnet2 import PointNet2
 from torch_points3d.applications.kpconv import KPConv
 from torch_points3d.applications.rsconv import RSConv
@@ -25,9 +26,9 @@ class Model(pl.LightningModule):
 
     def _build_backbone(self):
         self._model = nn.ModuleDict()
-        model_name = sys.argv[1] if len(sys.argv) == 2 else "pointnet2"
-        assert model_name in ["pointnet2", "pointnet", "kpconv", "rsconv"], "model_name should within ['pointnet2', 'pointnet', 'kpconv', 'rsconv']"
-        self._model_opt = getattr(self._params.models, model_name)
+        self._model_name = sys.argv[1] if len(sys.argv) == 2 else "pointnet2"
+        assert self._model_name in ["pointnet2", "kpconv", "rsconv"], "model_name should within ['pointnet2', 'pointnet', 'kpconv', 'rsconv']"
+        self._model_opt = getattr(self._params.models, self._model_name)
         model_builder = globals().copy()[self._model_opt.class_name]
         self._model["backbone"] = model_builder(architecture="encoder", 
                                                 input_nc=self._model_opt.input_nc, 
@@ -37,18 +38,15 @@ class Model(pl.LightningModule):
                                                 multiscale=True)
 
     def forward(self, data):
+        if self._model_name == "kpconv": # KPConv needs added one for its x features
+            data = AddOnes()(data)
+            data.x = data.ones
         data_out = self._model["backbone"](data)
         return F.log_softmax(self._model["classifier"](data_out.x).squeeze(), dim=-1)
 
     def training_step(self, data, *args):
         y_hat = self(data)
         return {'loss': F.nll_loss(y_hat, data.y.squeeze()), "acc": self.compute_acc(y_hat, data.y.squeeze())}
-
-    @staticmethod
-    def compute_acc(y_hat, y):
-        labels_hat = torch.argmax(y_hat, dim=1)
-        acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-        return torch.tensor(acc)
 
     def test_step(self, data, *args):
         y_hat = self(data)
@@ -70,6 +68,12 @@ class Model(pl.LightningModule):
 
     def test_dataloader(self):
         return self._dataset._test_loader
+
+    @staticmethod
+    def compute_acc(y_hat, y):
+        labels_hat = torch.argmax(y_hat, dim=1)
+        acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+        return torch.tensor(acc)
 
 def main(params):
 

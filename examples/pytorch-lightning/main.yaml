@@ -16,7 +16,7 @@ models:
     kpconv:
         class_name: KPConv
         conv_type: "partial_dense"
-        input_nc: 3
+        input_nc: 0
         in_feat: 16
         output_nc: 256
         num_layers: 4
