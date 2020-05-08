@@ -78,7 +78,7 @@ class Model(pl.LightningModule):
 def main(params):
 
     model = Model(params=params)
-    trainer = pl.Trainer(gpus=0, progress_bar_refresh_rate=10, max_epochs=10)
+    trainer = pl.Trainer(gpus=int(torch.cuda.is_available()), progress_bar_refresh_rate=10, max_epochs=10)
     trainer.fit(model)   
 
 if __name__ == '__main__':
