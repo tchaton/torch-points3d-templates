@@ -40,22 +40,25 @@ class Model(pl.LightningModule):
 
     def forward(self, data):
         data_out = self._model["encoder"](data)
-        return self._model["classifier"](data_out.x)
+        return F.log_softmax(self._model["classifier"](data_out.x).squeeze(), dim=-1)
 
     def training_step(self, data, *args):
         y_hat = self(data)
-        loss = F.nll_loss(y_hat, data.y)
-        tensorboard_logs = {'train_loss': loss}
-        return {'loss': loss, 'log': tensorboard_logs}
+        return {'loss': F.nll_loss(y_hat, data.y.squeeze()), "acc": self.compute_acc(y_hat, data.y.squeeze())}
+
+    @staticmethod
+    def compute_acc(y_hat, y):
+        labels_hat = torch.argmax(y_hat, dim=1)
+        acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+        return torch.tensor(acc)
 
     def test_step(self, data, *args):
         y_hat = self(data)
-        return {'test_loss': F.nll_loss(y_hat, data.y)}
+        return {'test_loss': F.nll_loss(y_hat, data.y.squeeze()), "test_acc": self.compute_acc(y_hat, data.y.squeeze())}
 
     def test_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        tensorboard_logs = {'test_loss': avg_loss}
-        return {'test_loss': avg_loss, 'log': tensorboard_logs}
+        return {'test_loss': torch.stack([x['test_loss'] for x in outputs]).mean(),
+                'test_acc': torch.stack([x['test_acc'] for x in outputs]).mean()}
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.001)
