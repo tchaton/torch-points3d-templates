@@ -2,6 +2,14 @@ data:
     dataroot: data
     num_points: 1024
     number: 10
+    pre_transforms:
+        - transform: NormalizeScale
+    train_transforms:
+        - transform: FixedPoints
+          lparams: [2048]
+    test_transforms:
+        - transform: FixedPoints
+          lparams: [2048]
 training:
     batch_size: 4
     num_workers: 1
