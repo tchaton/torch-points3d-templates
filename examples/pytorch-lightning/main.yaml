@@ -1,18 +1,17 @@
 data:
     dataroot: data
-    num_points: 1024
     number: 10
     pre_transforms:
         - transform: NormalizeScale
     train_transforms:
         - transform: FixedPoints
-          lparams: [2048]
+          lparams: [1024]
         - transform: RemoveAttributes
           params:
             keys: ["face"]
     test_transforms:
         - transform: FixedPoints
-          lparams: [2048]
+          lparams: [1024]
         - transform: RemoveAttributes
           params:
             keys: ["face"]
