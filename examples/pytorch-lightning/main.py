@@ -2,20 +2,22 @@ from utils import load_torch_points3d
 load_torch_points3d()
 import os
 import sys
+from omegaconf import OmegaConf
 import torch
 from torch import nn
-from omegaconf import OmegaConf
 from torch.nn import functional as F
-from torch_points3d.core.data_transform import AddOnes
+import pytorch_lightning as pl
 from torch_points3d.applications.pointnet2 import PointNet2
 from torch_points3d.applications.kpconv import KPConv
 from torch_points3d.applications.rsconv import RSConv
 from torch_points3d.datasets.classification.modelnet import ModelNetDataset
 from torch_points3d.core.common_modules.base_modules import Seq
 from torch_points3d.core.common_modules.dense_modules import Conv1D
-import pytorch_lightning as pl
+from torch_points3d.core.data_transform import AddOnes
 
 class Model(pl.LightningModule):
+
+    AVAILABLE_MODELS = ["pointnet2", "kpconv", "rsconv"]
 
     def __init__(self, params):
         super().__init__()
@@ -28,7 +30,7 @@ class Model(pl.LightningModule):
     def _build_backbone(self):
         self._model = nn.ModuleDict()
         self._backbone_name = sys.argv[1] if len(sys.argv) == 2 else "pointnet2"
-        assert self._backbone_name in ["pointnet2", "kpconv", "rsconv"], "model_name should within ['pointnet2', 'pointnet', 'kpconv', 'rsconv']"
+        assert self._backbone_name in self.AVAILABLE_MODELS, "model_name should within {}".format(self.AVAILABLE_MODELS)
         self._model_opt = getattr(self._params.models, self._backbone_name)
         backbone_builder = globals().copy()[self._model_opt.class_name]
         self._model["backbone"] = backbone_builder(architecture="encoder", 
