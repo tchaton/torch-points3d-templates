@@ -1,0 +1,29 @@
+data:
+    dataroot: data
+    num_points: 1024
+    number: 10
+training:
+    batch_size: 4
+    num_workers: 1
+models:
+    pointnet2:
+        class_name: PointNet2
+        conv_type: "dense"
+        input_nc: 3
+        in_feat: 16
+        output_nc: 256
+        num_layers: 3
+    kpconv:
+        class_name: KPConv
+        conv_type: "partial_dense"
+        input_nc: 3
+        in_feat: 16
+        output_nc: 256
+        num_layers: 4
+    rsconv:
+        class_name: RSConv
+        conv_type: "dense"
+        input_nc: 3
+        in_feat: 8
+        output_nc: 256
+        num_layers: 4
