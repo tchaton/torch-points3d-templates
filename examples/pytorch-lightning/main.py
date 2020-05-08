@@ -23,14 +23,15 @@ class Model(pl.LightningModule):
         self._build_backbone()
         self._model["classifier"] = Seq()
         self._model["classifier"].append(Conv1D(self._model_opt.output_nc, self._params.data.number, activation=None, bias=True, bn=False))
+        print(self._model)
 
     def _build_backbone(self):
         self._model = nn.ModuleDict()
-        self._model_name = sys.argv[1] if len(sys.argv) == 2 else "pointnet2"
-        assert self._model_name in ["pointnet2", "kpconv", "rsconv"], "model_name should within ['pointnet2', 'pointnet', 'kpconv', 'rsconv']"
-        self._model_opt = getattr(self._params.models, self._model_name)
-        model_builder = globals().copy()[self._model_opt.class_name]
-        self._model["backbone"] = model_builder(architecture="encoder", 
+        self._backbone_name = sys.argv[1] if len(sys.argv) == 2 else "pointnet2"
+        assert self._backbone_name in ["pointnet2", "kpconv", "rsconv"], "model_name should within ['pointnet2', 'pointnet', 'kpconv', 'rsconv']"
+        self._model_opt = getattr(self._params.models, self._backbone_name)
+        backbone_builder = globals().copy()[self._model_opt.class_name]
+        self._model["backbone"] = backbone_builder(architecture="encoder", 
                                                 input_nc=self._model_opt.input_nc, 
                                                 in_feat=self._model_opt.in_feat,
                                                 num_layers=self._model_opt.num_layers,
@@ -38,7 +39,7 @@ class Model(pl.LightningModule):
                                                 multiscale=True)
 
     def forward(self, data):
-        if self._model_name == "kpconv": # KPConv needs added one for its x features
+        if self._backbone_name == "kpconv": # KPConv needs added ones for its x features
             data = AddOnes()(data)
             data.x = data.ones
         data_out = self._model["backbone"](data)
@@ -61,6 +62,7 @@ class Model(pl.LightningModule):
 
     def prepare_data(self):
         self._dataset = ModelNetDataset(self._params.data)
+        print(self._dataset)
         self._dataset.create_dataloaders(self._model_opt, self._params.training.batch_size, True, self._params.training.num_workers, False)
 
     def train_dataloader(self):
