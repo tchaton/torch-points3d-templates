@@ -12,8 +12,12 @@ poetry shell
 
 ## Pytorch Lighthing
 
+This script runs a point cloud classifier with several bakcbones on ModelNet under 100 lines.
+
+The bakcbones are "kpconv", "pointnet2", "rsconv" 
+
 ```
-poetry run python3 examples/pytorch-lightning/main.py
+poetry run python3 examples/pytorch-lightning/main.py kpconv
 ```
 
 ## FastAI
