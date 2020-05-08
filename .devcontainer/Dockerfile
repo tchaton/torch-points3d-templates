@@ -39,7 +39,7 @@ RUN poetry update
 RUN poetry env info --path > /python_path
 RUN cat /python_path
 
-RUN git clone https://github.com/StanfordVL/MinkowskiEngine.git /tmp/ME \
-    && cd /tmp/ME \
-    && export VENV=`cat /python_path` \
-    && $VENV/bin/python setup.py install --cpu_only
+# RUN git clone https://github.com/StanfordVL/MinkowskiEngine.git /tmp/ME \
+#     && cd /tmp/ME \
+#     && export VENV=`cat /python_path` \
+#     && $VENV/bin/python setup.py install --cpu_only
