@@ -8,13 +8,13 @@ data:
           lparams: [1024]
         - transform: RemoveAttributes
           params:
-            keys: ["face"]
+            attr_names: ["face"]
     test_transforms:
         - transform: FixedPoints
           lparams: [1024]
         - transform: RemoveAttributes
           params:
-            keys: ["face"]
+            attr_names: ["face"]
 training:
     batch_size: 4
     num_workers: 1
