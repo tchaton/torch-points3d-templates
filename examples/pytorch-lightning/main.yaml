@@ -7,9 +7,15 @@ data:
     train_transforms:
         - transform: FixedPoints
           lparams: [2048]
+        - transform: RemoveAttributes
+          params:
+            keys: ["face"]
     test_transforms:
         - transform: FixedPoints
           lparams: [2048]
+        - transform: RemoveAttributes
+          params:
+            keys: ["face"]
 training:
     batch_size: 4
     num_workers: 1
