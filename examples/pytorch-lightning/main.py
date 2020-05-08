@@ -6,6 +6,8 @@ from torch import nn
 from omegaconf import OmegaConf
 from torch.nn import functional as F
 from torch_points3d.datasets.classification.modelnet import ModelNetDataset
+from torch_points3d.core.common_modules.base_modules import Seq
+from torch_points3d.core.common_modules.dense_modules import Conv1D
 from torch_points3d.applications.pointnet2 import PointNet2
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
@@ -19,30 +21,31 @@ class Model(pl.LightningModule):
         self._model_opt = params.model
         self._dataset_opt = params.data
         self._training_opt = params.training
-
         self._input_nc = eval(self._model_opt.input_nc)
-        self._encoder = PointNet2(input_nc=self._input_nc, 
+        self._output_nc = eval(self._model_opt.output_nc)
+        self._model = nn.ModuleDict()
+        self._model["encoder"] = PointNet2(input_nc=self._input_nc, 
+                                  output_nc=self._output_nc,
                                   in_feat=self._model_opt.in_feat, 
                                   multiscale=self._model_opt.multiscale, 
                                   num_layers=self._model_opt.num_layers, architecture="encoder")
-        self._classifier = nn.Linear(self._model_opt.in_feat * 16, self._dataset_opt.number) 
+        
+        self._model["classifier"] = Seq()
+        self._model["classifier"].append(Conv1D(self._output_nc, self._dataset_opt.number, activation=None, bias=True, bn=False))
 
     def forward(self, data):
-        features = self._model(data)
+        data_out = self._model["encoder"](data)
+        return self._model["classifier"](data_out.x)
 
-    def training_step(self, batch, batch_idx):
-        # REQUIRED
-        x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
+    def training_step(self, data, *args):
+        y_hat = self(data)
+        loss = F.nll_loss(y_hat, data.y)
         tensorboard_logs = {'train_loss': loss}
         return {'loss': loss, 'log': tensorboard_logs}
 
-    def test_step(self, batch, batch_idx):
-        # OPTIONAL
-        x, y = batch
-        y_hat = self(x)
-        return {'test_loss': F.cross_entropy(y_hat, y)}
+    def test_step(self, data, *args):
+        y_hat = self(data)
+        return {'test_loss': F.nll_loss(y_hat, data.y)}
 
     def test_epoch_end(self, outputs):
         avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
@@ -55,7 +58,7 @@ class Model(pl.LightningModule):
     def prepare_data(self):
         self._dataset = ModelNetDataset(self._dataset_opt)
         self._dataset.create_dataloaders(
-            self._model,
+            self._model_opt,
             self._training_opt.batch_size,
             True,
             self._training_opt.num_workers,
@@ -63,10 +66,10 @@ class Model(pl.LightningModule):
         )
 
     def train_dataloader(self):
-        return self._dataset._train_dataset
+        return self._dataset._train_loader
 
     def test_dataloader(self):
-        return self._dataset._test_dataset
+        return self._dataset._test_loader
 
 def main(params):
 
@@ -83,10 +86,12 @@ if __name__ == '__main__':
         dataroot: data
         num_points: 1024
         number: 10
-        use_normal: True
+        use_normal: False
     model:
-        input_nc: 3 * (1 + 1 * ${data.use_normal})
+        conv_type: "dense"
+        input_nc: 3 * (1 * ${data.use_normal})
         in_feat: 16
+        output_nc: 16 * ${model.in_feat}
         num_layers: 3
         multiscale: True
     training:
