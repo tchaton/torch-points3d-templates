@@ -26,39 +26,47 @@ class DatasetWrapper():
 
     def __getitem__(self, idx):
         data = next(iter(self._dataset))
-        return data.pos, data.y
+        out = {"pos":data.pos}
+        if data.batch is not None: out["batch"] = data.batch
+        return out, data.y
 
     def __len__(self):
         return len(self._dataset)
 
-def build_backbone(params):
-    model = nn.ModuleDict()
-    backbone_name = sys.argv[1] if len(sys.argv) == 2 else "pointnet2"
-    assert backbone_name in AVAILABLE_MODELS, "model_name should within {}".format(AVAILABLE_MODELS)
-    model_opt = getattr(params.models, backbone_name)
-    backbone_builder = globals().copy()[model_opt.class_name]
-    backbone_builder = globals().copy()[model_opt.class_name]
-    return backbone_builder(architecture="unet", 
-                            input_nc=model_opt.input_nc, 
-                            in_feat=model_opt.in_feat,
-                            num_layers=model_opt.num_layers,
-                            output_nc=model_opt.output_nc,
-                            multiscale=True), model_opt
 
 class Net(nn.Module):
 
     def __init__(self, params, num_classes):
         super(Net, self).__init__()
         self._model = nn.ModuleDict()
-        self._model["backbone"], self._model_opt = build_backbone(params)
+        self._model["backbone"], self._model_opt, self._backbone_name = self.build_backbone(params)
         self._model["classifier"] = Seq()
         self._model["classifier"].append(Conv1D(self._model_opt.output_nc, num_classes, activation=None, bias=True, bn=False))
 
     def forward(self, input, *args):
-        data = Data(pos=input[0], x=input[0])
+        if self._backbone_name == "kpconv":
+            data = Data(pos=input["pos"].squeeze(), batch=input["batch"].squeeze(), x=torch.ones((input["pos"].shape[1], 1)))
+        else:
+            data = Data(pos=input["pos"].squeeze(), x=input["pos"].squeeze())
         data_out = self._model["backbone"](data)
+        if data_out.x.dim() == 2: data_out.x = data_out.x.permute(1, 0).unsqueeze(dim=0)
         out =  F.log_softmax(self._model["classifier"](data_out.x).permute(0, 2, 1), dim=-1)
         return out
+
+    @staticmethod
+    def build_backbone(params):
+        model = nn.ModuleDict()
+        backbone_name = sys.argv[1] if len(sys.argv) == 2 else "pointnet2"
+        assert backbone_name in AVAILABLE_MODELS, "model_name should within {}".format(AVAILABLE_MODELS)
+        model_opt = getattr(params.models, backbone_name)
+        backbone_builder = globals().copy()[model_opt.class_name]
+        backbone_builder = globals().copy()[model_opt.class_name]
+        return backbone_builder(architecture="unet", 
+                                input_nc=model_opt.input_nc, 
+                                in_feat=model_opt.in_feat,
+                                num_layers=model_opt.num_layers,
+                                output_nc=model_opt.output_nc,
+                                multiscale=True), model_opt, backbone_name
 
 class CustomLoss:
 
