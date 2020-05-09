@@ -17,6 +17,10 @@ from torch_points3d.core.data_transform import AddOnes
 
 from fastai.basics import *
 
+"""
+Conclusion: FastAI Framework can be used, but seems pretty static in its implementation, creating a strong limitation for more complex workflow.
+"""
+
 AVAILABLE_MODELS = ["pointnet2", "kpconv", "rsconv"]
 
 class DatasetWrapper():
@@ -80,7 +84,7 @@ def main(params):
 
     dataset = ShapeNetDataset(params.data)
     model = Net(params, dataset.num_classes) 
-    dataset.create_dataloaders(model._model_opt, 2, True, 0, False)
+    dataset.create_dataloaders(model._model_opt, params.training.batch_size, True, 0, False)
     data = DataBunch.create(DatasetWrapper(dataset._train_loader), DatasetWrapper(dataset._train_loader), bs=1)
     model = Net(params, dataset.num_classes) 
     learner = Learner(data, model, opt_func=torch.optim.Adam, loss_func=CustomLoss())

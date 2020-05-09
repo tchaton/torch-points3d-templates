@@ -25,7 +25,7 @@ data:
           lparams: [1024]
 training:
     batch_size: 2
-    num_workers: 1
+    num_workers: 0
 models:
     pointnet2:
         class_name: PointNet2
