@@ -22,10 +22,10 @@ poetry run python3 examples/pytorch-lightning/main.py kpconv
 
 ## FastAI
 
-This script runs a `point cloud segmentation model` with several bakcbones on Shapenet under `100 lines`.
+This script runs a `point cloud Unet segmentation model` with several bakcbones on Shapenet under `100 lines`.
 
 The bakcbones are `"kpconv", "pointnet2", "rsconv"`
 
 ```
-poetry run python3 examples/fastai/main.py kpconv
+poetry run python3 examples/fastai/main.py rsconv
 ```
